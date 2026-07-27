@@ -42,6 +42,17 @@ input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:
 .info-row:last-child{border-bottom:none}
 .info-label{color:var(--muted)}.info-value{color:var(--text);font-weight:600}
 .section-title{font-size:12px;color:var(--cyan);margin:16px 0 8px;font-weight:600}
+.install-banner{background:linear-gradient(135deg,#1a1f4e,#0d1340);border:1px solid var(--cyan);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s}
+.install-banner:active{transform:scale(.98)}
+.install-banner .icon{font-size:32px}
+.install-banner .text{flex:1}
+.install-banner .title{font-size:14px;font-weight:700;color:var(--cyan)}
+.install-banner .sub{font-size:11px;color:var(--muted)}
+.install-banner .arrow{font-size:20px;color:var(--cyan)}
+.install-guide{background:#0a0e27;border:1px solid var(--border);border-radius:6px;padding:12px;margin-top:8px}
+.install-guide ol{margin-left:16px;font-size:12px;color:var(--text)}
+.install-guide li{margin-bottom:6px}
+.install-guide .step{color:var(--cyan);font-weight:600}
 </style>
 </head>
 <body>
@@ -49,6 +60,22 @@ input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:
 <div class="header">
   <h1>🔐 VMG License Admin</h1>
   <p>VibesMassGenerator License Generator</p>
+</div>
+
+<!-- Install PWA Banner -->
+<div class="install-banner" id="installBanner" style="display:none">
+  <div class="icon">📱</div>
+  <div class="text">
+    <div class="title">Install App</div>
+    <div class="sub">Tambahkan ke Home Screen untuk akses cepat</div>
+  </div>
+  <div class="arrow">›</div>
+</div>
+
+<!-- Install Guide (shown when native prompt not available) -->
+<div id="installGuide" class="card" style="display:none">
+  <div class="card-title">📱 Install ke Home Screen</div>
+  <div id="installGuideContent"></div>
 </div>
 
 <!-- Generate -->
@@ -271,6 +298,122 @@ function getMachineId() {
     Math.random().toString(36).slice(2, 10);
 }
 $("machineId").textContent = getMachineId();
+
+// ── PWA Install ────────────────────────────────────────
+let deferredPrompt = null;
+
+// Check if already installed
+function isInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true ||
+    localStorage.getItem("vmg_installed") === "true";
+}
+
+// Detect platform
+function getPlatform() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua)) return "ios";
+  if (/Android/.test(ua)) return "android";
+  return "desktop";
+}
+
+// Show install banner
+function showInstallBanner() {
+  if (isInstalled()) return;
+  const banner = $("installBanner");
+  const guide = $("installGuide");
+  const platform = getPlatform();
+
+  if (deferredPrompt) {
+    // Native install prompt available (Android/Chrome)
+    banner.style.display = "flex";
+    guide.style.display = "none";
+  } else if (platform === "ios") {
+    // iOS: no native prompt, show manual guide
+    banner.style.display = "flex";
+    banner.querySelector(".sub").textContent = "Tap untuk lihat cara install di iPhone/iPad";
+    guide.style.display = "block";
+    guide.innerHTML = `<div class="card-title">📱 Install di iPhone/iPad</div>
+      <div class="install-guide"><ol>
+        <li>Buka situs ini di <span class="step">Safari</span></li>
+        <li>Tekan tombol <span class="step">Share</span> (kotak dengan panah ⬆️) di bawah</li>
+        <li>Pilih <span class="step">"Add to Home Screen"</span></li>
+        <li>Tekan <span class="step">"Add"</span> di pojok kanan atas</li>
+        <li>App akan muncul di Home Screen! ✅</li>
+      </ol></div>`;
+  } else if (platform === "android") {
+    // Android without native prompt
+    banner.style.display = "flex";
+    banner.querySelector(".sub").textContent = "Tap untuk lihat cara install di Android";
+    guide.style.display = "block";
+    guide.innerHTML = `<div class="card-title">📱 Install di Android</div>
+      <div class="install-guide"><ol>
+        <li>Buka situs ini di <span class="step">Chrome</span></li>
+        <li>Tekan <span class="step">⋮ (3 titik)</span> di pojok kanan atas</li>
+        <li>Pilih <span class="step">"Install app"</span> atau <span class="step">"Add to Home Screen"</span></li>
+        <li>Konfirmasi dengan tekan <span class="step">"Install"</span></li>
+        <li>App akan muncul di Home Screen! ✅</li>
+      </ol></div>`;
+  } else {
+    // Desktop — show Chrome guide
+    banner.style.display = "flex";
+    banner.querySelector(".sub").textContent = "Install sebagai desktop app";
+    guide.style.display = "block";
+    guide.innerHTML = `<div class="card-title">💻 Install di Desktop</div>
+      <div class="install-guide"><ol>
+        <li>Di Chrome/Edge, tekan <span class="step">⋮ → Install VMG License Admin</span></li>
+        <li>Atau klik icon <span class="step">⬇️ Install</span> di address bar</li>
+        <li>App akan terinstall sebagai standalone window</li>
+      </ol></div>`;
+  }
+}
+
+// Banner click
+$("installBanner").addEventListener("click", async () => {
+  if (deferredPrompt) {
+    // Native install
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      toast("App installing...");
+      localStorage.setItem("vmg_installed", "true");
+    }
+    deferredPrompt = null;
+    $("installBanner").style.display = "none";
+    $("installGuide").style.display = "none";
+  } else {
+    // Toggle guide visibility
+    const guide = $("installGuide");
+    guide.style.display = guide.style.display === "none" ? "block" : "none";
+  }
+});
+
+// Capture beforeinstallprompt
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+// Mark installed on appinstalled
+window.addEventListener("appinstalled", () => {
+  localStorage.setItem("vmg_installed", "true");
+  $("installBanner").style.display = "none";
+  toast("App installed!");
+});
+
+// Check on load (for iOS where beforeinstallprompt doesn't fire)
+if (!isInstalled()) {
+  // Show guide immediately for iOS, wait for event for others
+  if (getPlatform() === "ios") {
+    showInstallBanner();
+  } else {
+    // Show after 3s if no native prompt received
+    setTimeout(() => {
+      if (!deferredPrompt && !isInstalled()) showInstallBanner();
+    }, 3000);
+  }
+}
 
 // ── Helpers ────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
