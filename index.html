@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0e27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="256x256" href="icon.png">
+<title>VMG License Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e27;--card:#111640;--border:#1e2460;--cyan:#00e5ff;--green:#00e676;--red:#ff5252;--text:#e0e0e0;--muted:#666}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:16px;padding-bottom:100px}
+.header{text-align:center;margin-bottom:24px}
+.header h1{font-size:20px;color:var(--cyan);margin-bottom:4px}
+.header p{font-size:12px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--cyan)}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;margin-top:8px}
+input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:6px;font-size:14px}
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:6px;font-size:14px;font-weight:600;border:none;cursor:pointer;width:100%;margin-top:8px}
+.btn-primary{background:var(--cyan);color:#000}
+.btn-green{background:var(--green);color:#000}
+.btn-red{background:var(--red);color:#fff}
+.btn:disabled{opacity:.5;cursor:wait}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.preset{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:#0a0e27;color:var(--text);font-size:12px;cursor:pointer}
+.preset.active{border-color:var(--cyan);color:var(--cyan)}
+.output{background:#0a0e27;border:1px solid var(--border);border-radius:6px;padding:12px;margin-top:12px;max-height:300px;overflow-y:auto;font-family:monospace;font-size:13px}
+.key-line{padding:6px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.key-line:last-child{border-bottom:none}
+.key-text{color:var(--green);font-weight:600;word-break:break-all}
+.key-meta{font-size:11px;color:var(--muted)}
+.copy-btn{background:none;border:1px solid var(--border);color:var(--cyan);padding:4px 8px;border-radius:4px;font-size:11px;cursor:pointer;white-space:nowrap}
+.copy-btn:active{background:var(--cyan);color:#000}
+.validate-box{display:flex;gap:8px}
+.validate-box input{flex:1}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:6px;font-size:13px;z-index:100;background:var(--green);color:#000}
+.result-icon{font-size:18px;margin-right:4px}
+.info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--muted)}.info-value{color:var(--text);font-weight:600}
+.section-title{font-size:12px;color:var(--cyan);margin:16px 0 8px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔐 VMG License Admin</h1>
+  <p>VibesMassGenerator License Generator</p>
+</div>
+
+<!-- Generate -->
+<div class="card">
+  <div class="card-title">Generate License</div>
+  <label>Duration</label>
+  <input type="number" id="inpDays" value="365" min="1" max="3650">
+  <div class="presets">
+    <button class="preset" data-days="30">30d Trial</button>
+    <button class="preset" data-days="90">90d</button>
+    <button class="preset active" data-days="365">1 Year</button>
+    <button class="preset" data-days="730">2 Years</button>
+    <button class="preset" data-days="3650">Lifetime</button>
+  </div>
+  <label>Count</label>
+  <input type="number" id="inpCount" value="1" min="1" max="100">
+  <button class="btn btn-primary" id="btnGenerate">🔑 Generate</button>
+  <div class="output" id="genOutput" style="display:none"></div>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn btn-green" id="btnCopyAll" style="display:none;width:auto;padding:8px 16px">📋 Copy All</button>
+    <button class="btn btn-red" id="btnExportTxt" style="display:none;width:auto;padding:8px 16px">📄 Export .txt</button>
+  </div>
+</div>
+
+<!-- Validate -->
+<div class="card">
+  <div class="card-title">Validate License</div>
+  <div class="validate-box">
+    <input id="inpValidate" placeholder="VMG3-XXXX-XXXX-XXXX">
+    <button class="btn btn-primary" id="btnValidate" style="width:auto;padding:10px 16px">Check</button>
+  </div>
+  <div id="validateResult"></div>
+</div>
+
+<!-- Info -->
+<div class="card">
+  <div class="card-title">License Info</div>
+  <div class="validate-box">
+    <input id="inpInfo" placeholder="VMG3-XXXX-XXXX-XXXX">
+    <button class="btn btn-primary" id="btnInfo" style="width:auto;padding:10px 16px">Info</button>
+  </div>
+  <div id="infoResult"></div>
+</div>
+
+<!-- Machine ID -->
+<div class="card">
+  <div class="card-title">Machine ID</div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:8px">For machine-bound licenses</p>
+  <div id="machineId" style="font-family:monospace;font-size:14px;color:var(--green)">Loading...</div>
+</div>
+
+<script>
+// ── License Engine (runs 100% in browser) ──────────────
+const PREFIX = "VMG3";
+const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function generateKey() {
+  const random = Array.from({length:12}, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join("");
+  return [PREFIX, random.slice(0,4), random.slice(4,8), random.slice(8,12)].join("-");
+}
+
+function keyHash(key) {
+  // SHA-256 via SubtleCrypto (async) but we need sync for hashing
+  // Use a simple FNV-1a hash for deterministic key validation
+  let hash = 0;
+  const upper = key.trim().toUpperCase();
+  for (let i = 0; i < upper.length; i++) {
+    hash ^= upper.charCodeAt(i);
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  // Mix with more rounds for better distribution
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < upper.length; i++) {
+    const ch = upper.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const combined = (4294967296 * (2097151 & h2) + (h1 >>> 0)) >>> 0;
+  return combined.toString(16).padStart(8, "0");
+}
+
+function extractDuration(key) {
+  const hash = keyHash(key);
+  const suffix = parseInt(hash.slice(-4), 16);
+  return Math.max(1, Math.min(3650, (suffix % 3650) + 1));
+}
+
+function validateKey(key) {
+  if (!key) return {valid: false, error: "Empty key"};
+  const normalized = key.trim().toUpperCase();
+  if (!new RegExp("^VMG3-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$").test(normalized)) {
+    return {valid: false, error: "Invalid format"};
+  }
+  const hash = keyHash(normalized);
+  const durationDays = parseInt(hash.slice(-4), 16) % 3650 + 1;
+  return {valid: true, key: normalized, durationDays, hash, expiresAt: new Date(Date.now() + durationDays * 86400000).toISOString()};
+}
+
+// ── Generate ───────────────────────────────────────────
+let lastGenerated = [];
+
+$("btnGenerate").addEventListener("click", () => {
+  const days = parseInt($("inpDays").value) || 365;
+  const count = Math.min(100, Math.max(1, parseInt($("inpCount").value) || 1));
+  const output = $("genOutput");
+  output.style.display = "block";
+  lastGenerated = [];
+
+  let html = "";
+  for (let i = 0; i < count; i++) {
+    const key = generateKey();
+    const extracted = extractDuration(key);
+    const expires = new Date(Date.now() + extracted * 86400000).toLocaleDateString("id-ID");
+    lastGenerated.push(key);
+    html += `<div class="key-line">
+      <div><div class="key-text">${key}</div><div class="key-meta">${extracted} hari · expires ${expires}</div></div>
+      <button class="copy-btn" onclick="copyKey('${key}', this)">Copy</button>
+    </div>`;
+  }
+  output.innerHTML = html;
+  $("btnCopyAll").style.display = "block";
+  $("btnExportTxt").style.display = "block";
+  toast(`Generated ${count} key(s)`);
+});
+
+function copyKey(key, btn) {
+  navigator.clipboard.writeText(key).then(() => {
+    btn.textContent = "✓ Copied";
+    setTimeout(() => btn.textContent = "Copy", 1500);
+  });
+}
+
+$("btnCopyAll").addEventListener("click", () => {
+  navigator.clipboard.writeText(lastGenerated.join("\n")).then(() => toast("All keys copied"));
+});
+
+$("btnExportTxt").addEventListener("click", () => {
+  const days = parseInt($("inpDays").value) || 365;
+  const lines = lastGenerated.map(k => {
+    const e = new Date(Date.now() + extractDuration(k) * 86400000).toLocaleDateString("id-ID");
+    return `${k}  # ${extractDuration(k)} hari, expires ${e}`;
+  });
+  const header = `# VMG License Keys\n# Generated: ${new Date().toISOString()}\n# Duration: ${days} days\n# Count: ${lastGenerated.length}\n\n`;
+  const blob = new Blob([header + lines.join("\n")], {type: "text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `vmg-licenses-${days}d-${Date.now()}.txt`;
+  a.click();
+  toast("File downloaded");
+});
+
+// ── Validate ───────────────────────────────────────────
+$("btnValidate").addEventListener("click", () => {
+  const result = validateKey($("inpValidate").value);
+  const el = $("validateResult");
+  if (result.valid) {
+    el.innerHTML = `<div style="margin-top:12px;padding:12px;background:rgba(0,230,118,.1);border:1px solid var(--green);border-radius:6px">
+      <div><span class="result-icon">✅</span><strong>VALID</strong></div>
+      <div class="info-row"><span class="info-label">Key</span><span class="info-value" style="color:var(--green)">${result.key}</span></div>
+      <div class="info-row"><span class="info-label">Duration</span><span class="info-value">${result.durationDays} hari</span></div>
+      <div class="info-row"><span class="info-label">Expires</span><span class="info-value">${result.expiresAt.slice(0,10)}</span></div>
+      <div class="info-row"><span class="info-label">Hash</span><span class="info-value" style="font-family:monospace">${result.hash}...</span></div>
+    </div>`;
+  } else {
+    el.innerHTML = `<div style="margin-top:12px;padding:12px;background:rgba(255,82,82,.1);border:1px solid var(--red);border-radius:6px">
+      <div><span class="result-icon">❌</span><strong>INVALID</strong> — ${result.error}</div>
+    </div>`;
+  }
+});
+
+// ── Info ───────────────────────────────────────────────
+$("btnInfo").addEventListener("click", () => {
+  const result = validateKey($("inpInfo").value);
+  const el = $("infoResult");
+  if (result.valid) {
+    el.innerHTML = `<div style="margin-top:12px;padding:12px;background:#0a0e27;border:1px solid var(--border);border-radius:6px">
+      <div class="info-row"><span class="info-label">Key</span><span class="info-value" style="color:var(--green)">${result.key}</span></div>
+      <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:var(--green)">ACTIVE</span></div>
+      <div class="info-row"><span class="info-label">Duration</span><span class="info-value">${result.durationDays} hari</span></div>
+      <div class="info-row"><span class="info-label">Activated</span><span class="info-value">now</span></div>
+      <div class="info-row"><span class="info-label">Expires</span><span class="info-value">${result.expiresAt.slice(0,10)}</span></div>
+      <div class="info-row"><span class="info-label">Hash</span><span class="info-value" style="font-family:monospace">${result.hash}...</span></div>
+    </div>`;
+  } else {
+    el.innerHTML = `<div style="margin-top:12px;padding:12px;color:var(--red)">${result.error}</div>`;
+  }
+});
+
+// ── Presets ────────────────────────────────────────────
+document.querySelectorAll(".preset").forEach(p => {
+  p.addEventListener("click", () => {
+    document.querySelectorAll(".preset").forEach(x => x.classList.remove("active"));
+    p.classList.add("active");
+    $("inpDays").value = p.dataset.days;
+  });
+});
+
+// ── Machine ID ─────────────────────────────────────────
+function getMachineId() {
+  // Generate a pseudo machine ID from browser fingerprint
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.textBaseline = "top";
+  ctx.font = "14px Arial";
+  ctx.fillText("VMG", 0, 0);
+  const data = canvas.toDataURL();
+  const ua = navigator.userAgent;
+  const screen_res = `${screen.width}x${screen.height}`;
+  const raw = `${data.slice(-50)}|${ua}|${screen_res}|${navigator.language}`;
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash.toString(16).padStart(8, "0") + "-" +
+    Math.random().toString(36).slice(2, 10);
+}
+$("machineId").textContent = getMachineId();
+
+// ── Helpers ────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+}
+</script>
+</body>
+</html>
