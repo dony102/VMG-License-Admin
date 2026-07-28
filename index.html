@@ -104,7 +104,7 @@ input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:
 <div class="card">
   <div class="card-title">Validate License</div>
   <div class="validate-box">
-    <input id="inpValidate" placeholder="VMG3-XXXX-XXXX-XXXX">
+    <input id="inpValidate" placeholder="VFG4-XXXX-XXXX-XXXX">
     <button class="btn btn-primary" id="btnValidate" style="width:auto;padding:10px 16px">Check</button>
   </div>
   <div id="validateResult"></div>
@@ -114,7 +114,7 @@ input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:
 <div class="card">
   <div class="card-title">License Info</div>
   <div class="validate-box">
-    <input id="inpInfo" placeholder="VMG3-XXXX-XXXX-XXXX">
+    <input id="inpInfo" placeholder="VFG4-XXXX-XXXX-XXXX">
     <button class="btn btn-primary" id="btnInfo" style="width:auto;padding:10px 16px">Info</button>
   </div>
   <div id="infoResult"></div>
@@ -129,7 +129,7 @@ input,select{width:100%;background:#0a0e27;border:1px solid var(--border);color:
 
 <script>
 // ── License Engine (runs 100% in browser) ──────────────
-const PREFIX = "VMG3";
+const PREFIX = "VFG4";
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generateKey() {
@@ -170,7 +170,7 @@ function extractDuration(key) {
 function validateKey(key) {
   if (!key) return {valid: false, error: "Empty key"};
   const normalized = key.trim().toUpperCase();
-  if (!new RegExp("^VMG3-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$").test(normalized)) {
+  if (!new RegExp("^VFG4-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$").test(normalized)) {
     return {valid: false, error: "Invalid format"};
   }
   const hash = keyHash(normalized);
